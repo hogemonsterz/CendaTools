@@ -245,40 +245,40 @@ def OffsetAnimation( selected ):
 					if ( ".location" in fcurveDataPath ):
 						
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offset = scn.LocDifference[ locIndex ]
+						offsets = scn.LocDifference
 						locIndex += 1
 						
-						CurveOffset(action, i, offset, numKeyframes)
+						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 					
 					
 					# ROTATION #
 					elif ( ".rotation_euler" in fcurveDataPath ):
 
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offset = scn.RotDifference[ rotIndex ]
+						offsets = scn.RotDifference
 						rotIndex += 1
 
-						CurveOffset(action, i, offset, numKeyframes)
+						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 
 
 					# Q ROTATION #
 					elif ( ".rotation_quaternion" in fcurveDataPath ):
 
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offset = scn.QRotDifference[ rotQIndex ]
+						offsets = scn.QRotDifference
 						rotQIndex += 1
 
-						CurveOffset(action, i, offset, numKeyframes)
+						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 							
 							
 					# SCALE #
 					elif ( ".scale" in fcurveDataPath ):
 							
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offset = scn.SclDifference[ sclIndex ]
+						offsets = scn.SclDifference
 						sclIndex += 1
 
-						CurveOffset(action, i, offset, numKeyframes)
+						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 
 
 	
@@ -290,50 +290,49 @@ def OffsetAnimation( selected ):
 				if ( "location" in fcurveDataPath ):
 					
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offset = scn.LocDifference[ locIndex ]
+					offsets = scn.LocDifference
 					locIndex += 1
 					
-					CurveOffset(action, i, offset, numKeyframes)
+					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 				
 				
 				# ROTATION #
 				elif ( "rotation_euler" in fcurveDataPath ):
 
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offset = scn.RotDifference[ rotIndex ]
+					offsets = scn.RotDifference
 					rotIndex += 1
 
-					CurveOffset(action, i, offset, numKeyframes)
+					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 						
 						
 				# Q ROTATION #
 				elif ( "rotation_quaternion" in fcurveDataPath ):
 
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offset = scn.QRotDifference[ rotQIndex ]
+					offsets = scn.QRotDifference
 					rotQIndex += 1
 
-					CurveOffset(action, i, offset, numKeyframes)
+					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 
 
 				# SCALE #
 				elif ( "scale" in fcurveDataPath ):
 						
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offset = scn.SclDifference[ sclIndex ]
+					offsets = scn.SclDifference
 					sclIndex += 1
 
-					CurveOffset(action, i, offset, numKeyframes)	
+					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 
 
-def CurveOffset(action, index, offset, numKeyframes):
+def CurveOffset(action, index, offsets, array_index, numKeyframes):
 	
 	for j in range(numKeyframes):
-		action.fcurves[ index ].keyframe_points[ j ].co.y -= offset
-		action.fcurves[ index ].keyframe_points[ j ].handle_left.y -= offset
-		action.fcurves[ index ].keyframe_points[ j ].handle_right.y -= offset				
-			
-			
+		action.fcurves[ index ].keyframe_points[ j ].co.y -= offsets[array_index]
+		action.fcurves[ index ].keyframe_points[ j ].handle_left.y -= offsets[array_index]
+		action.fcurves[ index ].keyframe_points[ j ].handle_right.y -= offsets[array_index]
+
 			
 ################################################################
 # register #
