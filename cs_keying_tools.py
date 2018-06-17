@@ -21,8 +21,12 @@ bl_info = {
 	"name": "Keying Tools",
 	"category": "Cenda Tools",
 	"author": "Cenek Strichel",
+	"version": (1, 0, 0),
+	"blender": (2, 79, 0),
 	"description": "Tools for Keying",
-	"location": "Timeline header, View3D header, Dopesheet (only selected mode) header"
+	"location": "Timeline header, View3D header, Dopesheet (only selected mode) header",
+	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
+	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
 }
 
 import bpy
@@ -66,8 +70,8 @@ class TIMELINE_HT_header(Header):
 			
 			row = layout.row(align=True)
 			layout.separator()
-			row.operator( "pose.key_whole_character" , icon = "KEY_HLT", text = "Whole Character")
 			row.operator( "pose.key_all_unlocked" , icon = "KEY_HLT", text = "Selected")
+			row.operator( "pose.key_whole_character" , icon = "KEY_HLT", text = "Whole Character")
 			
 		row = layout.row(align=True)
 		row.operator( "scene.only_insert_needed" , icon = current_icon)	
@@ -86,6 +90,19 @@ class OnlyInsertNeeded(bpy.types.Operator):
 		return{'FINISHED'}
 	
 	
+class QuaternionToXYZ(bpy.types.Operator):
+
+	bl_label = "Quaternion to XYZ"
+	bl_idname = "scene.quaternion_to_xyz"
+
+	def execute(self, context):
+		for bone in bpy.context.selected_pose_bones:
+			if(bone.rotation_mode == "QUATERNION"):
+				bone.rotation_mode = "XYZ"
+
+		return{'FINISHED'}
+		
+		
 class KeyWholeCharacter(bpy.types.Operator):
 	
 	'''Key Whole Character'''
@@ -514,10 +531,29 @@ class AnimKeyingMenuViewport( bpy.types.Menu ):
 	bl_idname = "ANIM_MT_insert_keyframes_menu"
 
 	def draw(self, context):
-		layout = self.layout
-		layout.operator("anim.keyframe_insert_menu_needed", text = "Location").location = True
-		layout.operator("anim.keyframe_insert_menu_needed", text = "Rotation").rotation = True
-		layout.operator("anim.keyframe_insert_menu_needed", text = "Scale").scale = True
+		
+		if(bpy.context.object.type != "ARMATURE"):
+			
+			layout = self.layout
+			op = layout.operator("anim.keyframe_insert_menu_needed", icon = "MAN_TRANS", text = "Location")
+			op.location = True
+			op.rotation = False
+			op.scale = False
+			
+			op = layout.operator("anim.keyframe_insert_menu_needed", icon = "MAN_ROT", text = "Rotation")
+			op.location = False
+			op.rotation = True
+			op.scale = False
+			
+			op = layout.operator("anim.keyframe_insert_menu_needed", icon = "MAN_SCALE", text = "Scale")
+			op.location = False
+			op.rotation = False
+			op.scale = True
+			
+		else:
+			layout = self.layout
+			layout.operator( "pose.key_all_unlocked" , icon = "KEY_HLT", text = "Selected")
+			layout.operator( "pose.key_whole_character" , icon = "KEY_HLT", text = "Whole Character")
 
 
 class AnimKeyInsertMenuNeededViewport( bpy.types.Operator ):
@@ -527,31 +563,52 @@ class AnimKeyInsertMenuNeededViewport( bpy.types.Operator ):
 	bl_label = "Key All Unlocked"
 	bl_options = {'REGISTER', 'UNDO'}
 	
-	location = BoolProperty(name="Location",default=False)
-	rotation = BoolProperty(name="Rotation",default=False)
-	scale = BoolProperty(name="Scale",default=False)
+	location = BoolProperty(name="Location", default=False)
+	rotation = BoolProperty(name="Rotation", default=False)
+	scale = BoolProperty(name="Scale", default=False)
 	
 	def execute(self, context):
 
-		# insert needed
-		prefs = bpy.context.user_preferences.edit
-		currentSetting = prefs.use_keyframe_insert_needed
-		prefs.use_keyframe_insert_needed = False
-
-		# keying type
-		if(self.location):
-			bpy.ops.anim.keyframe_insert_menu(type='Location')
+		if(bpy.context.object.type != "ARMATURE"):
 			
-		elif(self.rotation):
-			bpy.ops.anim.keyframe_insert_menu(type='Rotation')
-			
-		elif(self.scale):
-			bpy.ops.anim.keyframe_insert_menu(type='Scaling')
+			# insert needed
+			prefs = bpy.context.user_preferences.edit
+			currentSetting = prefs.use_keyframe_insert_needed
+			prefs.use_keyframe_insert_needed = False
 
+			# keying type
+			if(self.location):
 
-		# return setting back
-		prefs.use_keyframe_insert_needed = currentSetting
+				bpy.ops.anim.keyframe_insert_menu(type='Location')
+				
+				for i in range (0,3):
+					if(bpy.context.object.lock_location[i]):
+						bpy.context.object.keyframe_delete(data_path="location", index=i)
+
+							
+			elif(self.rotation):
+
+				bpy.ops.anim.keyframe_insert_menu(type='Rotation')
+				
+				for ir in range (0,3):
+					if(bpy.context.object.lock_rotation[ir]):
+						bpy.context.object.keyframe_delete(data_path="rotation_euler", index=ir)
+						
+			elif(self.scale):
+
+				bpy.ops.anim.keyframe_insert_menu(type='Scaling')
+				
+				for iscale in range (0,3):
+					if(bpy.context.object.lock_scale[iscale]):
+						bpy.context.object.keyframe_delete(data_path="scale", index=iscale)
+
+			# return setting back
+			prefs.use_keyframe_insert_needed = currentSetting
 	
+		else:
+			
+			self.report({'ERROR'}, "Armature is not supported!")
+			
 		return {'FINISHED'}
 	
 			

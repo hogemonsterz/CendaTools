@@ -21,17 +21,18 @@
 bl_info = {
 	"name": "Linked Physics",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 0),
-	"blender": (2, 77, 0),
+	"version": (1, 0, 3),
+	"blender": (2, 79, 0),
 	"location": "Physics > Linked Physic",
 	"description": "Change settings for linked physic",
-	"category": "Cenda Tools"}
+	"category": "Cenda Tools",
+	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
+	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
+	}
 
 import bpy
 from bpy.props import StringProperty, IntProperty, BoolProperty
 from bpy.types import Header, Panel
-
-
 
 
 # GUI ###############################################################
@@ -57,7 +58,9 @@ class VIEW3D_PT_tools_linkedPhysics(bpy.types.Panel):
 		layout = self.layout
 
 		col = layout.column(align=True)
-		col.prop(scn, "LinkedObjectName", text = "Cloth Object")
+		col.label("Cloth Name")
+		col.prop(scn, "LinkedObjectName", text = "")
+
 
 		row = layout.row(align=True)
 		row.prop(scn, "LinkedStartFrane", text="Start")
@@ -83,13 +86,33 @@ class LinkedPhysicsSet(bpy.types.Operator):
 		scn = bpy.context.scene
 		obj = bpy.context.object
 		
-		ob = bpy.data.objects[ scn.LinkedObjectName ]
-		cache = ob.modifiers["Cloth"].point_cache
+		try:
+			ob = bpy.data.objects[ scn.LinkedObjectName ]
+		except:
+			self.report({'ERROR'}, "Object was not found!")
+			return {'FINISHED'}
+			
+		modifier = False
 		
-		cache.frame_start = scn.LinkedStartFrane
-		cache.frame_end = scn.LinkedEndFrane
+		try:
+			cache = ob.modifiers["Cloth"].point_cache
+			cache.frame_start = scn.LinkedStartFrane
+			cache.frame_end = scn.LinkedEndFrane
+			modifier = True
+		except:
+			pass
 		
+		try:
+			cache = ob.modifiers["Softbody"].point_cache
+			cache.frame_start = scn.LinkedStartFrane
+			cache.frame_end = scn.LinkedEndFrane
+			modifier = True
+		except:
+			pass
 		
+		if(not modifier):
+			self.report({'ERROR'}, "Supported physic modifier is not available!")
+			
 		for area in bpy.context.screen.areas:
 			if area.type == 'PROPERTIES':
 				area.tag_redraw()

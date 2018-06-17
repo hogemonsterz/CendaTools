@@ -21,152 +21,24 @@
 bl_info = {
 	"name": "Tools",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 1),
-	"blender": (2, 78, 0),
+	"version": (1, 0, 5),
+	"blender": (2, 79, 0),
 	"location": "Many commands",
 	"description": "Many tools",
-	"category": "Cenda Tools"}
+	"category": "Cenda Tools",
+	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
+	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
+	}
+
 
 import bpy
-from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Header, Panel
 
-'''
-class VIEW3D_PT_options_bone(bpy.types.Panel):
-	
-	bl_label = "Bone Settings"
-	bl_idname = "BONE_SETTINGS_PANEL"
-	
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'TOOLS'
-	bl_category = "Options"
-	
-	bl_context = "armature_edit"
 
 
-	def draw(self, context):
-		bone = context.selected_bones
-		
-	#	if not bone:
-	#		bone = context.edit_bone
-			
-		self.layout.prop(bone, "use_deform", text="")
-'''
-
-class VIEW3D_PT_view3d_display_view_side(Panel):
-	
-	bl_space_type = 'VIEW_3D'
-	bl_region_type = 'UI'
-	bl_label = "View Side"
-	
-	def draw(self, context):
-		
-		layout = self.layout
-		
-		row = layout.row(align = True)
-		row.operator("view3d.viewnumpad", text="Top").type='TOP'
-		
-		box = layout.box()
-		row = box.row(align = True)
-		row.operator("view3d.viewnumpad", text="Front" ).type='FRONT'
-		
-		row = box.row(align = True)
-		row.operator("view3d.viewnumpad", text="Left" ).type='LEFT'
-		row.operator("view3d.viewnumpad", text="Right" ).type='RIGHT'
-		
-		row = box.row(align = True)
-		row.operator("view3d.viewnumpad", text="Back" ).type='BACK'
-	
-	
-############################ GUI ####################################
-class TIMELINE_HT_header_camShot(Header):
-	
-	bl_space_type = 'TIMELINE'
-
-
-	def draw(self, context):
-
-		layout = self.layout
-
-		row = layout.row(align=True)
-		row = layout.row(align=True)
-		row.operator( "scene.change_cam_shot" , icon = "FRAME_PREV", text = "Previous Shot").forward = False
-		row.operator( "scene.change_cam_shot" , icon = "FRAME_NEXT", text = "Next Shot").forward = True
-			
-		
-				
-class ChangeCamShot(bpy.types.Operator):
-
-
-	bl_label = "Change Cam Shot"
-	bl_idname = "scene.change_cam_shot"
-	
-	
-	forward = BoolProperty(name="Forward",default=True)
-	
-	
-	def execute(self, context):
-		
-		# I am using only preview
-		bpy.context.scene.use_preview_range = True
-
-		# start frame for detection
-		bpy.context.scene.frame_current = ( bpy.context.scene.frame_preview_start + bpy.context.scene.frame_preview_end ) / 2
-			
-		last = False	
-		
-		# FORWARD #
-		if(self.forward):
-
-			# is it last?
-			markerStatus = bpy.ops.screen.marker_jump(next = True)
-			if(markerStatus == {'CANCELLED'} ):	
-				self.report({'INFO'},"Last Shot Reached")
-				last = True
-				
-			else:		
-				bpy.context.scene.frame_preview_start = bpy.context.scene.frame_current + 1
-			
-				# start range
-				markerStatus = bpy.ops.screen.marker_jump(next = True)
-				if(markerStatus == {'CANCELLED'} ):
-					bpy.context.scene.frame_preview_end += 200
-				else:	
-					bpy.context.scene.frame_preview_end = bpy.context.scene.frame_current + 1
-					
-	
-		# BACKWARD #
-		else:
-
-			bpy.ops.screen.marker_jump(next = False)
-	
-			bpy.context.scene.frame_preview_end = bpy.context.scene.frame_current
-		
-			# start range
-			markerStatus = bpy.ops.screen.marker_jump(next = False)
-			if(markerStatus == {'CANCELLED'} ):
-				bpy.context.scene.frame_preview_start = 0
-			else:	
-				bpy.context.scene.frame_preview_start = bpy.context.scene.frame_current
-	
-			# if end, jump to first
-			if( bpy.context.scene.frame_preview_start == 0 and bpy.context.scene.frame_preview_end == 0):
-				markerStatus = bpy.ops.screen.marker_jump(next = True)
-				bpy.context.scene.frame_preview_end = bpy.context.scene.frame_current
-				self.report({'INFO'},"First Shot Reached")
-				
-		# change after setting shot
-		bpy.context.scene.frame_current	= bpy.context.scene.frame_preview_start
-		if(not last):
-			bpy.context.scene.frame_preview_end -= 1 # I dont want show next marker shot
-		
-		# frame timeline
-		for area in bpy.context.screen.areas:
-			FrameForEditor( area, 'TIMELINE')
-
-		return{'FINISHED'}
-			
-
+############################ GUI ####################################	
+# replace for classic camera view (NUM 0)		
 class ShowCameraView(bpy.types.Operator):
 
 	bl_idname = "screen.show_camera_view"
@@ -194,7 +66,7 @@ class ShowCameraView(bpy.types.Operator):
 	
 	
 ################################################################
-# play animation and stop with restore time position
+# play animation and stop with restore time position for easy animation play
 class AnimationPlayRestore(bpy.types.Operator):
 
 	bl_idname = "screen.animation_play_restore"
@@ -215,27 +87,6 @@ class AnimationPlayRestore(bpy.types.Operator):
 			bpy.ops.screen.animation_cancel(restore_frame=True)
 		else:
 			bpy.ops.screen.animation_play()	
-			
-		# change only current
-		
-		'''	
-		space = bpy.context.space_data
-		
-		if space.type == 'VIEW_3D': # check if space is a 3D view
-			# Previs Play
-			if self.onlyRender :
-				space.show_only_render = not isplaying
-				space.show_manipulator = isplaying
-				space.fx_settings.use_ssao = not isplaying
-				
-			# Normal Play
-			else :
-				space.show_only_render = False
-				space.show_manipulator = isplaying
-				space.fx_settings.use_ssao = False
-	
-		else:
-		'''
 		
 		# areas #
 		for area in bpy.context.screen.areas: # iterate through areas in current screen
@@ -259,7 +110,22 @@ class AnimationPlayRestore(bpy.types.Operator):
 							space.fx_settings.use_ssao = False
 
 		return {'FINISHED'}
-		
+	
+
+# Hotkey for Outliner	
+class HideObjects(bpy.types.Operator):
+	
+	bl_idname = "object.hide_view_and_render"
+	bl_label = "Hide View and Render"
+	
+	def execute(self, context):
+
+		bpy.ops.object.hide_view_set()
+		bpy.ops.object.hide_render_set()
+
+				
+		return {'FINISHED'}
+			
 	
 ############		
 # CHANNELS #
@@ -304,7 +170,8 @@ class SelectAndFrame(bpy.types.Operator):
 				
 		return {'FINISHED'}
 
-		
+
+# collapse all channels in animation editor		
 class ResetExpand(bpy.types.Operator):
 	
 	bl_idname = "anim.reset_expand"
@@ -360,6 +227,7 @@ class FrameCurve(bpy.types.Operator):
 		return {'FINISHED'}	
 
 
+# Shrink and Grow selected face mask
 class WeightMaskSelect(bpy.types.Operator):
 	
 	bl_idname = "paint.weight_mask_select"
@@ -378,21 +246,8 @@ class WeightMaskSelect(bpy.types.Operator):
 
 	def execute(self, context):
 		
-		'''
-		if(context.weight_paint_object.data.use_paint_mask_vertex):
-			self.report({'ERROR'}, "Only Face Mask is supported for now!")
-			return {'FINISHED'}	
-		
-		if(context.object.data.use_paint_mask_vertex):
-			self.report({'ERROR'}, "Only Face Mask is supported for now!")
-			return {'FINISHED'}	
-		'''
-		
-	#	bpy.context.object.data.use_paint_mask = True
-
 		bpy.ops.object.editmode_toggle()
 		
-			
 		if(self.selectType == 'More'):
 			bpy.ops.mesh.select_more()
 			
@@ -517,6 +372,7 @@ class OrientationSwitcher(bpy.types.Operator):
 '''	
 
 # my isolate version - not working well, don`t use it
+'''
 class IsolateObject(bpy.types.Operator):
 	
 	bl_idname = "view3d.isolate_object"
@@ -539,9 +395,9 @@ class IsolateObject(bpy.types.Operator):
 			bpy.ops.view3d.localview()	
 				 
 		return {'FINISHED'}
+'''	
 	
-	
-	
+# Join object UV to one UV even it has different names	
 class JoinObjectsWithUV(bpy.types.Operator):
 	
 	bl_idname = "object.join_with_uv"
@@ -553,12 +409,17 @@ class JoinObjectsWithUV(bpy.types.Operator):
 	def execute(self, context):
 		
 		if(self.uvmerge):
+			
+			newName = "UVMap"
+			
 			# rename UV for merge
-			newName = bpy.context.object.data.uv_textures[0].name
+			if(len(bpy.context.object.data.uv_textures) > 0):
+				newName = bpy.context.object.data.uv_textures[0].name
 			
 			# all objects UV rename
 			for obj in bpy.context.selected_objects:
-				obj.data.uv_textures[0].name = newName
+				if(len(obj.data.uv_textures) > 0):
+					obj.data.uv_textures[0].name = newName
 
 		# join
 		bpy.ops.object.join()	
@@ -568,7 +429,7 @@ class JoinObjectsWithUV(bpy.types.Operator):
 
 	
 
-################
+## TEXT EDITOR ###############
 class TextToolsButtons(Header):
 	
 	bl_space_type = 'TEXT_EDITOR'
@@ -620,141 +481,7 @@ def FrameForEditor( currentArea, testedArea ):
 					bpy.ops.graph.view_all(ctx)
 						
 				break
-	
-
-class VIEW3D_HT_header_cenda(Header):
-	
-	bl_space_type = 'VIEW_3D'
-
-
-	def draw(self, context):
-		
-		layout = self.layout
-		
-		row = layout.row(align=True)
-		row = layout.row(align=True)
-		
-		#################################################
-		# quad view
-		row.operator("screen.region_quadview", text = "Quad View", icon = "VIEW3D_VEC")
-		
-		# simplify			
-		state = bpy.context.scene.render.use_simplify
-		
-		if (state) :
-			current_icon = 'CHECKBOX_HLT'
-		else:
-			current_icon = 'CHECKBOX_DEHLT'
 			
-		row.operator("scene.simplify_toggle", icon = current_icon)
-			
-		#################################################	
-		# culling	
-		row = layout.row(align=True)	
-		state = bpy.context.space_data.show_backface_culling
-
-		if (state) :
-			current_icon = 'CHECKBOX_HLT'
-		else:
-			current_icon = 'CHECKBOX_DEHLT'
-		
-		row.operator("scene.backface_toggle", icon = current_icon)
-
-		# texture	
-		if( context.scene.render.engine == "BLENDER_RENDER" and context.object.type == "MESH"):
-			row.operator("scene.texture_toggle")
-		
-		'''
-		#################################################
-		# export
-		row = layout.row(align=True)
-		
-		if(bpy.context.active_object.mode  == 'OBJECT'):
-			row.enabled = True
-		else:
-			row.enabled = False
-			
-		# only first override is used
-		textExport = context.scene.ExportPath.rsplit('\\', 1)[-1]
-	#	icon = "EXPORT"
-		
-		for obj in bpy.context.selected_objects:
-			if( obj.ExportOverride ):
-				textExport = "[ " + context.object.ExportPathOverride.rsplit('\\', 1)[-1] + " ]"	
-			#	icon = "PMARKER_ACT"
-				break
-			
-		if(len(textExport) > 0):
-			row.operator("cenda.export_to_place", icon = "EXPORT", text = textExport)
-		'''
-		'''
-		# fluid bake
-		obj = bpy.context.active_object
-		if "Fluidsim" in obj.modifiers :
-		#	if fluid.type == 'DOMAIN':
-		#	row.operator("fluid.bake", text="Bake",translate=False, icon='MOD_FLUIDSIM')
-			row.operator("object.bake_fluid", text="Bake",translate=False, icon='MOD_FLUIDSIM')
-		'''
-
-'''
-class BakeFluid(bpy.types.Operator):
-
-	bl_idname = "object.bake_fluid"
-	bl_label = "Bake Fluid"
-#	bl_options = {'REGISTER', 'UNDO'}
-
-	def execute(self, context):
-		bpy.ops.fluid.bake()
-		return {'FINISHED'}
-'''		
-
-
-class SimplifyToggle(bpy.types.Operator):
-
-	'''Simplify Toggle'''
-	bl_idname = "scene.simplify_toggle"
-	bl_label = "Simplify"
-#	bl_options = {'REGISTER', 'UNDO'}
-
-	
-	def execute(self, context):
-
-		bpy.context.scene.render.use_simplify = not bpy.context.scene.render.use_simplify
-
-		return {'FINISHED'}
-	
-	
-class BackfaceToggle(bpy.types.Operator):
-
-	'''Backface'''
-	bl_idname = "scene.backface_toggle"
-	bl_label = "Culling"
-#	bl_options = {'REGISTER', 'UNDO'}
-
-	
-	def execute(self, context):
-
-		bpy.context.space_data.show_backface_culling = not bpy.context.space_data.show_backface_culling
-
-		return {'FINISHED'}
-		
-		
-		
-class TextureToggle(bpy.types.Operator):
-
-	'''Texture Toggle'''
-	bl_idname = "scene.texture_toggle"
-	bl_label = "Texture"
-#	bl_options = {'REGISTER', 'UNDO'}
-
-	
-	def execute(self, context):
-
-		# hardcoded for now (for normal maps)
-		context.object.active_material.use_textures[1] = not context.object.active_material.use_textures[1]
-
-		return {'FINISHED'}
-	
 			
 ###########################################################
 class SetInOutRange(bpy.types.Operator):
@@ -785,7 +512,8 @@ class SetInOutRange(bpy.types.Operator):
 
 		return {'FINISHED'}	
 		
-	
+
+## SHOW MATERIAL SETTINGS in Properties and Node Editor #	
 class ShowMaterial(bpy.types.Operator):
 
 	'''Show Material'''
@@ -802,10 +530,26 @@ class ShowMaterial(bpy.types.Operator):
 		if(obj.type == "MESH"):
 			
 			for area in bpy.context.screen.areas: # iterate through areas in current screen
+				
+				# Set Properties
 				if area.type == 'PROPERTIES':
 					for space in area.spaces: # iterate through all founded panels
 						if space.type == 'PROPERTIES':	
 							space.context = 'MATERIAL'
+							
+				# Set Node editor
+				if area.type == 'NODE_EDITOR':
+					for space in area.spaces: # iterate through all founded panels
+						if space.type == 'NODE_EDITOR':	
+							space.tree_type = 'ShaderNodeTree'
+							space.shader_type = 'OBJECT'
+							'''
+							override = {}
+							override['area'  ] = area
+							override['region'] = space
+							
+							bpy.ops.node.view_all(override)
+							'''
 						
 		return {'FINISHED'}	
 	
@@ -862,37 +606,113 @@ class ProportionalSwitcher(bpy.types.Operator):
 		return {'FINISHED'}
 	
 	
-#class SelectRecursiveAndShow(bpy.types.Operator):
+# Switch like in the Photoshop ("X" key)
+class SwitchWeight(bpy.types.Operator):
 
-#	'''Select Recursive and Show'''
-'''
-	bl_idname = "outliner.select_recursive_and_show"
-	bl_label = "Select Recursive and Show"
+	'''Switch Weight value from 1 to 0'''
+	bl_idname = "scene.switch_weight"
+	bl_label = "Switch Weight"
 	bl_options = {'REGISTER', 'UNDO'}
 
 
 	def execute(self, context):
 		
-		bpy.ops.outliner.item_activate('INVOKE_DEFAULT')
+		# show all
+		if(bpy.context.scene.tool_settings.unified_paint_settings.weight == 0):
+			bpy.context.scene.tool_settings.unified_paint_settings.weight = 1
+		else:
+			bpy.context.scene.tool_settings.unified_paint_settings.weight = 0	
+	
+		return {'FINISHED'}
+	
 
+# set UV mark and set seam to view	
+class MarkSeamWithDisplay(bpy.types.Operator):
+
+	'''Mark UV seam with display'''
+	bl_idname = "mesh.mark_seam_with_display"
+	bl_label = "Mark UV Seam"
+	bl_options = {'REGISTER', 'UNDO'}
+
+
+	def execute(self, context):
 		
-		
-	#	# show all
-	#	for obj in bpy.context.selected_objects:
-	#		obj.hide = False
-			
-	#	bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+		# show all
+		bpy.ops.mesh.mark_seam(clear=False)
+		bpy.context.object.data.show_edge_crease = False
+		bpy.context.object.data.show_edge_seams = True
+		bpy.context.object.data.show_edge_sharp = False
+		bpy.context.object.data.show_edge_bevel_weight = False
 				
+		return {'FINISHED'}
+
+	
+# TIMELINE #	
+def TIMELINE_HT_AudioMute(self, context):
+	
+	layout = self.layout
+	
+	if(bpy.context.scene.use_audio):
+		icon = "MUTE_IPO_ON"
+	else:
+		icon = "MUTE_IPO_OFF"
+
+	row = layout.row(align=True)
+	row.operator( "screen.audio_mute_toggle", text = "Audio", icon = icon )
+		
+		
+class AudioMuteToggle(bpy.types.Operator):
+
+	bl_idname = "screen.audio_mute_toggle"
+	bl_label = "Audio Mute Toggle"
+
+	def execute(self, context):
+	
+		bpy.context.scene.use_audio = not bpy.context.scene.use_audio
+
 		return {'FINISHED'}	
-'''							
+		
+
+# Add mist with settings (start and depth), it is just command for call		
+class AddMistPass(bpy.types.Operator):
+
+
+	bl_idname = "scene.add_mist_pass"
+	bl_label = "Add Mist Pass"
+	bl_options = {'REGISTER', 'UNDO'}
+	
+	start = FloatProperty( name="Start", default=5 )
+	depth = FloatProperty( name="Depth", default=25 )
+	
+	
+	def execute(self, context):
+	
+		# activate mist pass
+		bpy.context.scene.render.layers[ bpy.context.scene.render.layers.active.name ].use_pass_mist = True
+
+		bpy.context.scene.world.mist_settings.start = self.start
+		bpy.context.scene.world.mist_settings.depth = self.depth
+
+		# show mist settings
+		if(bpy.context.scene.objects.active.type == "CAMERA"):
+			bpy.context.scene.objects.active.data.show_mist = True
+			
+		elif(bpy.context.scene.camera != None):
+			bpy.context.scene.camera.data.show_mist = True
+
+		return {'FINISHED'}	
+			
+								
 ################################################################
 # register #
 
 def register():
 	bpy.utils.register_module(__name__)
+	bpy.types.TIME_HT_header.prepend(TIMELINE_HT_AudioMute)
 	
 def unregister():
 	bpy.utils.unregister_module(__name__)
+	bpy.types.TIME_HT_header(TIMELINE_HT_AudioMute)
 	
 if __name__ == "__main__":
 	register()

@@ -21,20 +21,26 @@
 bl_info = {
 	"name": "Layout Switcher",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 0),
-	"blender": (2, 78, 0),
+	"version": (1, 0, 3),
+	"blender": (2, 79, 0),
 	"location": "Info header",
 	"description": "Switch layout with buttons on Info header",
-	"category": "Cenda Tools"}
+	"category": "Cenda Tools",
+	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
+	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
+	}
+
 
 import bpy
 from bpy.props import StringProperty
 from bpy.types import Header, Panel
+
 import platform
 
-################
+
+#################
 # AUTO IK CHAIN #
-################
+#################
 
 class SwitchLatout(bpy.types.Operator):
 
@@ -46,10 +52,26 @@ class SwitchLatout(bpy.types.Operator):
 	
 	
 	def execute(self, context):
-
-		bpy.context.window.screen = bpy.data.screens[ self.layoutName ]
-
 		
+		try:
+			bpy.context.window.screen = bpy.data.screens[ self.layoutName ]
+			
+		except:
+		#	bpy.ops.screen.new() # duplicate current
+			
+			bpy.context.window.screen.name = self.layoutName
+		#	bpy.context.window.screen = bpy.data.screens[ self.layoutName ]
+			
+			# rename old
+			'''
+			for s in bpy.data.screens:
+				bpy.context.window.screen.name = s.name.replace(".001","")
+				bpy.context.window.screen.name = s.name.replace(".002","")
+				bpy.context.window.screen.name = s.name.replace(".003","")
+				bpy.context.window.screen.name = s.name.replace(".004","")
+			'''	
+			self.report({'WARNING'}, "Current layout was renamed!")
+			
 		return {'FINISHED'}
 
 
@@ -62,20 +84,25 @@ def switchLayout(self, context):
 	
 	for area in bpy.context.screen.areas: # iterate through areas in current screen
 		totalWidth = totalWidth + area.width
+		
+	prefix = ""
 	
-	# my home station (1 monitor)
-	if( totalWidth <= 8000 ):
-		row = layout.row(align=True)
-		row.operator(SwitchLatout.bl_idname, text = "Generic").layoutName = "_1 Generic"
-		row.operator(SwitchLatout.bl_idname, text = "Animation").layoutName = "_2 Animation"
-	
-	# another station (3 monitors)
-	else:
-		row.operator(SwitchLatout.bl_idname, text = "Generic").layoutName = "1 Generic"
-		row.operator(SwitchLatout.bl_idname, text = "Animation").layoutName = "2 Animation"
-		row.operator(SwitchLatout.bl_idname, text = "Composition").layoutName = "3 Composition"
-
-
+	# my home station (1 big monitor)
+	if "[M1]" in str(bpy.context.window.screen.name):
+		prefix = "[M1] "
+		
+	elif "[M2]" in str(bpy.context.window.screen.name):
+		prefix = "[M2] "
+		
+	elif "[M3]" in str(bpy.context.window.screen.name):
+		prefix = "[M3] "
+		
+	row = layout.row(align=True)
+		
+	row.operator(SwitchLatout.bl_idname, text = "Generic", icon = "VIEW3D").layoutName = (prefix + "1 Generic")
+	row.operator(SwitchLatout.bl_idname, text = "Animation", icon = "IPO").layoutName = (prefix + "2 Animation")
+	row.operator(SwitchLatout.bl_idname, text = "Composition", icon = "NODETREE").layoutName = (prefix + "3 Composition")
+	row.operator(SwitchLatout.bl_idname, text = "", icon = "TEXT").layoutName = (prefix + "4 Scripting")
 
 
 ################################################################

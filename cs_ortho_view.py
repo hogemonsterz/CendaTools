@@ -19,77 +19,56 @@
 
 
 bl_info = {
-	"name": "Quick Motion Paths",
+	"name": "Ortho View",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 1),
+	"version": (1, 0, 0),
 	"blender": (2, 79, 0),
-	"location": "Tools > Quick Motion Paths",
-	"description": "Show motion path",
+	"location": "N-Panel",
+	"description": "Panel for set ortho view",
 	"category": "Cenda Tools",
 	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
 	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
 	}
-	
+
 
 import bpy
+from bpy.types import  Panel
 
 
-class RenamePanel(bpy.types.Panel):
+class VIEW3D_PT_view3d_display_view_side(Panel):
 	
-	bl_label = "Quick Motion Paths"
-	bl_idname = "MOTIONPATH_PANEL"
+	bl_space_type = 'VIEW_3D'
+	bl_region_type = 'UI'
+	bl_label = "Ortho View"
 	
-	bl_space_type = "VIEW_3D"
-	bl_region_type = "TOOLS"
-	bl_category = "Tools"
-	bl_context = "posemode"
-
-
 	def draw(self, context):
 		
 		layout = self.layout
-		# button
 		
-		pchan = context.active_pose_bone
-		mpath = pchan.motion_path if pchan else None
+		row = layout.row(align = True)
+		row.operator("view3d.viewnumpad", text="Top").type='TOP'
 		
-		if mpath:
-			row = layout.row(align=True)
-			row.operator("pose.paths_update", text="Update", icon = 'FILE_REFRESH')
-			row.operator("pose.paths_clear", text="Clear", icon='X')
-		else:	
-			layout.operator("cenda.motion_pats", icon = 'ANIM_DATA')
+		box = layout.box()
+		row = box.row(align = True)
+		row.operator("view3d.viewnumpad", text="Front" ).type='FRONT'
 		
+		row = box.row(align = True)
+		row.operator("view3d.viewnumpad", text="Left" ).type='LEFT'
+		row.operator("view3d.viewnumpad", text="Right" ).type='RIGHT'
+		
+		row = box.row(align = True)
+		row.operator("view3d.viewnumpad", text="Back" ).type='BACK'
 
-# rename button	
-class QuickMotionPath(bpy.types.Operator):
-	
-	"""Create motion path by preview range"""
-	bl_label = "Calculate"
-	bl_idname = "cenda.motion_pats"
-	
 
-	def execute(self, context ):
-		
-		if(bpy.context.scene.use_preview_range):
-			startFrame = bpy.context.scene.frame_preview_start
-			endFrame = bpy.context.scene.frame_preview_end
-		else:
-			startFrame = bpy.context.scene.frame_start
-			endFrame = bpy.context.scene.frame_end
-				
-		bpy.ops.pose.paths_calculate(start_frame=startFrame, end_frame=endFrame, bake_location='TAILS')
-		
-		return{'FINISHED'} 
-	
-			
+
 ################################################################
-# register #	
+# register #
+############
 def register():
 	bpy.utils.register_module(__name__)
 	
 def unregister():
 	bpy.utils.unregister_module(__name__)
-
+	
 if __name__ == "__main__":
 	register()

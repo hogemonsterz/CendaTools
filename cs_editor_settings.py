@@ -21,16 +21,18 @@
 bl_info = {
 	"name": "Set Editor Settings",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 0),
-	"blender": (2, 78, 0),
+	"version": (1, 0, 3),
+	"blender": (2, 8, 0),
 	"location": "screen.set_editor_settings hotkey",
 	"description": "Set settings for all active editors",
-	"category": "Cenda Tools"}
+	"category": "Cenda Tools",
+	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
+	"tracker_url": "https://github.com/CenekStrichel/CendaTools/issues"
+	}
 
 
 import bpy
-from bpy.props import StringProperty, BoolProperty #, IntProperty, BoolProperty, EnumProperty
-#from bpy.types import Header, Panel
+from bpy.props import StringProperty, BoolProperty
 
 
 # change object mode by selection			
@@ -51,7 +53,13 @@ class SetEditorSettings(bpy.types.Operator):
 		bpy.context.scene.tool_settings.use_mesh_automerge = True
 		
 		# paint weight
-		bpy.context.scene.tool_settings.weight_paint.use_normal = True
+		if ((2, 79, 4) <= bpy.app.version) :
+			for b in bpy.data.brushes :
+				b.use_frontface = True
+		else:
+			bpy.context.scene.tool_settings.weight_paint.use_normal = True
+				
+				
 		bpy.context.scene.tool_settings.use_auto_normalize = True
 
 		# areas #
@@ -70,10 +78,14 @@ class SetEditorSettings(bpy.types.Operator):
 				elif(space.type == 'VIEW_3D'):
 					space.use_occlude_geometry = True
 					space.show_relationship_lines = False
+					space.lock_camera_and_layers = False
 
 				elif(space.type == 'IMAGE_EDITOR'):
 					space.uv_editor.show_other_objects = True
 					
+				elif(space.type == 'TIMELINE'):
+					space.show_frame_indicator = True
+
 			#	print( space.type  )
 			
 		print("All editors setted")
@@ -82,9 +94,8 @@ class SetEditorSettings(bpy.types.Operator):
 	
 	
 def menu_func(self, context):
-    self.layout.operator(
-        SetEditorSettings.bl_idname, 
-        icon="PREFERENCES")
+	self.layout.separator()
+	self.layout.operator( SetEditorSettings.bl_idname, icon="PREFERENCES" )
 			
 				
 ################################################################
