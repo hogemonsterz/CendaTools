@@ -21,9 +21,9 @@
 bl_info = {
 	"name": "Offset Animation",
 	"author": "Cenek Strichel",
-	"version": (1, 0, 2),
+	"version": (1, 0, 4),
 	"blender": (2, 79, 0),
-	"location": "Tools > Offset Animation",
+	"location": "Animation (Tools Panel) > Offset Animation",
 	"description": "Offset for animated object and bones",
 	"category": "Cenda Tools",
 	"wiki_url": "https://github.com/CenekStrichel/CendaTools/wiki",
@@ -32,6 +32,7 @@ bl_info = {
 	
 
 import bpy
+
 from bpy.props import BoolProperty, FloatVectorProperty, FloatProperty, IntProperty
 from mathutils import *
 from math import *
@@ -41,14 +42,12 @@ from math import *
 class OffsetAnimationPanel(bpy.types.Panel):
 	
 	
-	bl_label = "Offset Animation"
+	bl_label = "Offset"
 	bl_idname = "OFFSET_ANIMATION_PANEL"
 	
 	bl_space_type = "VIEW_3D"
 	bl_region_type = "TOOLS"
-	bl_category = "Tools"
-#	bl_context = "posemode"
-	
+	bl_category = "Animation"
 
 	bpy.types.Scene.showSetOffset = BoolProperty(name="ShowSetOffset",default=False) # is reference setted?
 	bpy.types.Scene.autokeySetting = BoolProperty(name="AutoKey",default=True) # previous setting for autokey
@@ -65,21 +64,16 @@ class OffsetAnimationPanel(bpy.types.Panel):
 
 		# First button
 		row = layout.row(align=True)
-	#	row.scale_y = 2
 		row.operator("anim.offset_animation_set", icon = "OUTLINER_DATA_ARMATURE" ,text="Reference").reference = True
 		
 		# Second button
 		row = layout.row(align=True)
-	#	row.scale_y = 2
 		row.operator("anim.offset_animation_set", icon = "POSE_DATA", text="Offset").reference = False
 		
 		if( context.scene.showSetOffset ):
 			row.enabled = True
 		else:
 			row.enabled = False	
-		
-	#	row = layout.row(align=True)
- 	#	row = layout.row(align=True)
 
 		box = layout.box()
 		row = box.row(align=True)
@@ -131,130 +125,137 @@ class OffsetAnimationSet(bpy.types.Operator):
 	
 	def execute(self, context):
 
-		# saving
-		bpy.types.Scene.LocStart = FloatVectorProperty( name = "LocStart", description = "")
-		bpy.types.Scene.LocEnd = FloatVectorProperty( name = "LocEnd", description = "")
-		bpy.types.Scene.LocDifference = FloatVectorProperty( name = "LocDifference", description = "")
-
-		bpy.types.Scene.RotStart = FloatVectorProperty( name = "RotStart", description = "")
-		bpy.types.Scene.RotEnd = FloatVectorProperty( name = "RotEnd", description = "")
-		bpy.types.Scene.RotDifference = FloatVectorProperty( name = "RotDifference", description = "")
-		
-		bpy.types.Scene.QRotStart = FloatVectorProperty( name = "QRotStart", description = "", size = 4 )
-		bpy.types.Scene.QRotEnd = FloatVectorProperty( name = "QRotEnd", description = "", size = 4 )
-		bpy.types.Scene.QRotDifference = FloatVectorProperty( name = "QRotDifference", description = "", size = 4 )
-		
-		bpy.types.Scene.SclStart = FloatVectorProperty( name = "SclStart", description = "")
-		bpy.types.Scene.SclEnd = FloatVectorProperty( name = "SclEnd", description = "")
-		bpy.types.Scene.SclDifference = FloatVectorProperty( name = "SclDifference", description = "")
-
 		# you need bone with action
 		if(context.object.animation_data.action == None):
 			self.report({'ERROR'},"No Action for Offset Found")
 			return {'FINISHED'}
 
-		# if bone is not selected, object is offseted
-		selected = bpy.context.active_pose_bone
-		if( selected == None ):
-			selected = bpy.context.active_object
-			
-		# cycling all selected bones
-#		for selectedBone in bpy.context.selected_pose_bones:
+		# BONES #
+		if bpy.context.active_object.type == 'ARMATURE':
 
-		currentLocation = selected.location
-		currentRotation = Vector (( selected.rotation_euler[0], selected.rotation_euler[1], selected.rotation_euler[2] ))
-		currentQRotation = Vector (( selected.rotation_quaternion[0], selected.rotation_quaternion[1], selected.rotation_quaternion[2], selected.rotation_quaternion[3] ))
-		currentScale = Vector (( selected.scale[0], selected.scale[1], selected.scale[2] ))
+			armature = bpy.context.active_object.data
 
-		SaveRemoveOffset( self, context, currentLocation, currentRotation, currentScale, selected, currentQRotation )
+			for bone in armature.bones:
+
+				bonePose = bpy.context.object.pose.bones[ bone.name ]
+
+				currentLocation = bonePose.location
+				currentRotation = Vector (( bonePose.rotation_euler[0], bonePose.rotation_euler[1], bonePose.rotation_euler[2] ))
+				currentQRotation = Vector (( bonePose.rotation_quaternion[0], bonePose.rotation_quaternion[1], bonePose.rotation_quaternion[2], bonePose.rotation_quaternion[3] ))
+				currentScale = Vector (( bonePose.scale[0], bonePose.scale[1], bonePose.scale[2] ))
+
+				if(self.reference):
+					SaveOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose )
+
+				else:
+					ApplyOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose )
+
+		# OBJECTS #
+		else:
+
+			bonePose = bpy.context.active_object
+
+			currentLocation = bonePose.location
+			currentRotation = Vector (( bonePose.rotation_euler[0], bonePose.rotation_euler[1], bonePose.rotation_euler[2] ))
+			currentQRotation = Vector (( bonePose.rotation_quaternion[0], bonePose.rotation_quaternion[1], bonePose.rotation_quaternion[2], bonePose.rotation_quaternion[3] ))
+			currentScale = Vector (( bonePose.scale[0], bonePose.scale[1], bonePose.scale[2] ))
+
+			if(self.reference):
+				SaveOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose )
+
+			else:
+				ApplyOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose )
+
+
+		####################################################
+		# Post setting
+		####################################################
+		if(self.reference):
+
+			bpy.types.Scene.autokeySetting = context.scene.tool_settings.use_keyframe_insert_auto
+			context.scene.tool_settings.use_keyframe_insert_auto = False
+
+			bpy.types.Scene.showSetOffset = True
+
+		else:
+
+			context.scene.tool_settings.use_keyframe_insert_auto = bpy.types.Scene.autokeySetting
+
+			bpy.types.Scene.showSetOffset = False
+
+
+		RedrawTimeline()
 
 		# update motions paths if displayed
 		try:
-			bpy.ops.pose.paths_update()
+
+			if bpy.context.active_object.type == 'ARMATURE':
+				bpy.ops.pose.paths_update()
+			else:
+				bpy.ops.object.paths_update()
+
 		except:
 			pass
 
 		return {'FINISHED'}
 
 
-def SaveRemoveOffset( self, context, currentLocation, currentRotation, currentScale, object, currentQRotation ):
+def SaveOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose ):
 	
-	scn = context.scene
-	
-	# first reference
-	if( self.reference ):
-		
-		scn.LocStart = currentLocation
-		scn.RotStart = currentRotation
-		scn.QRotStart = currentQRotation
-		scn.SclStart = currentScale
-		
-		# autokey setting
-		bpy.types.Scene.autokeySetting = scn.tool_settings.use_keyframe_insert_auto
-		scn.tool_settings.use_keyframe_insert_auto = False
-		RedrawTimeline()
+	# BONES #
+	if bpy.context.active_object.type == 'ARMATURE':
 
-		bpy.types.Scene.showSetOffset = True
+		bpy.types.PoseBone.LocStart = bpy.props.FloatVectorProperty(name="LocStart")
+		bonePose.LocStart = currentLocation
 
-	# second for offset
+		bpy.types.PoseBone.RotStart = bpy.props.FloatVectorProperty(name="RotStart")
+		bonePose.RotStart = currentRotation
+		
+		bpy.types.PoseBone.QRotStart = bpy.props.FloatVectorProperty(name="QRotStart", size = 4)
+		bonePose.QRotStart = currentQRotation
+
+		bpy.types.PoseBone.SclStart = bpy.props.FloatVectorProperty(name="SclStart")
+		bonePose.SclStart = currentScale
+
+	# OBJECT #
 	else:
 		
-		self.reference = False
+		bpy.types.Object.LocStart = bpy.props.FloatVectorProperty(name="LocStart")
+		bonePose.LocStart = currentLocation
+
+		bpy.types.Object.RotStart = bpy.props.FloatVectorProperty(name="RotStart")
+		bonePose.RotStart = currentRotation
 		
-		# location
-		scn.LocEnd = currentLocation
-		scn.LocDifference = ( Vector(scn.LocStart) - Vector(scn.LocEnd) )
-		
-		# rotation
-		scn.RotEnd = currentRotation
-		scn.RotDifference = ( Vector(scn.RotStart) - Vector(scn.RotEnd) )
-		
-		scn.QRotEnd = currentQRotation
-		scn.QRotDifference = ( Vector(scn.QRotStart) - Vector(scn.QRotEnd) )
-		
-		# scale
-		scn.SclEnd = currentScale
-		scn.SclDifference = ( Vector(scn.SclStart) - Vector(scn.SclEnd) )
-		
-		# do offset
-		OffsetAnimation( object )
-		
-		# autokey setting
-		scn.tool_settings.use_keyframe_insert_auto = bpy.types.Scene.autokeySetting
-		RedrawTimeline()
-				
-		# for button
-		bpy.types.Scene.showSetOffset = False
-		
-		# delete after load
-		del scn["LocStart"]
-		del scn["LocEnd"]
-		del scn["LocDifference"]
-	
-		del scn["RotStart"]
-		del scn["RotEnd"]
-		del scn["RotDifference"]
-		
-		del scn["QRotStart"]
-		del scn["QRotEnd"]
-		del scn["QRotDifference"]
-		
-		del scn["SclStart"]
-		del scn["SclEnd"]
-		del scn["SclDifference"]
-				
-				
-# autokey is turned off, so I have to redraw autokey button
-def RedrawTimeline():
-	
-	# redraw autokey state
-	for area in bpy.context.screen.areas:
-		if area.type == 'TIMELINE':
-			area.tag_redraw()
-						
-						
+		bpy.types.Object.QRotStart = bpy.props.FloatVectorProperty(name="QRotStart", size = 4)
+		bonePose.QRotStart = currentQRotation
+
+		bpy.types.Object.SclStart = bpy.props.FloatVectorProperty(name="SclStart")
+		bonePose.SclStart = currentScale
+
+
+def ApplyOffset( currentLocation, currentRotation, currentScale, currentQRotation, bonePose ):
+
+	# location
+	locDifference = ( Vector(bonePose.LocStart) - Vector( currentLocation ) )
+
+	# rotation
+	rotDifference = ( Vector(bonePose.RotStart) - Vector( currentRotation ) )
+	qRotDifference = ( Vector(bonePose.QRotStart) - Vector( currentQRotation ) )
+
+	# scale
+	sclDifference = ( Vector(bonePose.SclStart) - Vector( currentScale ) )
+
+	# do offset
+	OffsetAnimation( locDifference, rotDifference, qRotDifference, sclDifference, bonePose )
+
+	del bonePose["LocStart"]
+	del bonePose["RotStart"]
+	del bonePose["QRotStart"]
+	del bonePose["SclStart"]
+
+
 ## ONLY FOR SET OFFSET ##############################################################
-def OffsetAnimation( selected ):
+def OffsetAnimation( locDifference, rotDifference, qRotDifference, sclDifference, bonePose ):
 	 
 	
 	scn = bpy.context.scene
@@ -275,7 +276,6 @@ def OffsetAnimation( selected ):
 		# num of channels
 		numCurves = len( action.fcurves )
 
-
 		for i in range(numCurves):
 			
 			fcurveDataPath = action.fcurves[ i ].data_path
@@ -284,16 +284,15 @@ def OffsetAnimation( selected ):
 			# BONE #
 			###################################################
 			if(bpy.context.active_pose_bone != None):
-						
+
 				# find bone by name
-				if ( selected.name in fcurveDataPath ):
-					
-					
+				if( (bonePose.name) == ( str(fcurveDataPath).split("\"")[1] ) ):
+
 					# LOCATION # - TODO - Rewrite duplicity code
 					if ( ".location" in fcurveDataPath ):
 						
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offsets = scn.LocDifference
+						offsets = locDifference
 						locIndex += 1
 						
 						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -303,17 +302,17 @@ def OffsetAnimation( selected ):
 					elif ( ".rotation_euler" in fcurveDataPath ):
 
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offsets = scn.RotDifference
+						offsets = rotDifference
 						rotIndex += 1
 
-						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
+						CurveOffset(action, i, offsets, numKeyframes)
 
 
 					# Q ROTATION #
 					elif ( ".rotation_quaternion" in fcurveDataPath ):
 
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offsets = scn.QRotDifference
+						offsets = qRotDifference
 						rotQIndex += 1
 
 						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -323,7 +322,7 @@ def OffsetAnimation( selected ):
 					elif ( ".scale" in fcurveDataPath ):
 							
 						numKeyframes = len( action.fcurves[ i ].keyframe_points )
-						offsets = scn.SclDifference
+						offsets = sclDifference
 						sclIndex += 1
 
 						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -334,11 +333,12 @@ def OffsetAnimation( selected ):
 			# OBJECT #
 			###################################################
 			else:
+
 				# LOCATION #
 				if ( "location" in fcurveDataPath ):
 					
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offsets = scn.LocDifference
+					offsets = locDifference
 					locIndex += 1
 					
 					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -348,7 +348,7 @@ def OffsetAnimation( selected ):
 				elif ( "rotation_euler" in fcurveDataPath ):
 
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offsets = scn.RotDifference
+					offsets = rotDifference
 					rotIndex += 1
 
 					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -358,7 +358,7 @@ def OffsetAnimation( selected ):
 				elif ( "rotation_quaternion" in fcurveDataPath ):
 
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offsets = scn.QRotDifference
+					offsets = qRotDifference
 					rotQIndex += 1
 
 					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -368,7 +368,7 @@ def OffsetAnimation( selected ):
 				elif ( "scale" in fcurveDataPath ):
 						
 					numKeyframes = len( action.fcurves[ i ].keyframe_points )
-					offsets = scn.SclDifference
+					offsets = sclDifference
 					sclIndex += 1
 
 					CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
@@ -390,7 +390,16 @@ def CurveOffset(action, index, offsets, array_index, numKeyframes):
 			key.handle_left.y -= offsets[array_index]
 			key.handle_right.y -= offsets[array_index]
 
-			
+
+# autokey is turned off, so I have to redraw autokey button
+def RedrawTimeline():
+
+	# redraw autokey state
+	for area in bpy.context.screen.areas:
+		if area.type == 'TIMELINE':
+			area.tag_redraw()
+
+
 ################################################################
 # register #
 	
