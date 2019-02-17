@@ -305,7 +305,7 @@ def OffsetAnimation( locDifference, rotDifference, qRotDifference, sclDifference
 						offsets = rotDifference
 						rotIndex += 1
 
-						CurveOffset(action, i, offsets, numKeyframes)
+						CurveOffset(action, i, offsets, action.fcurves[ i ].array_index, numKeyframes)
 
 
 					# Q ROTATION #
